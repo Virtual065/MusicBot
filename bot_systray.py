@@ -143,6 +143,8 @@ last_activity = {}
 currently_playing = {}
 previous_songs = {}
 regulated_mode = {}
+command_logs = {}  # Store command history per guild (max 50)
+manual_pause = {}  # Track manual pause by user (don't auto-resume)
 
 # Playlist URL
 NONSTOP_POP_PLAYLIST = "https://youtube.com/playlist?list=PLgbI0QcBNn5isOvlIN0rRK9Y6bSQdheii&si=Cqb7oJDTsYBDHXLz"
@@ -203,6 +205,26 @@ def get_queue(guild_id):
     if guild_id not in music_queues:
         music_queues[guild_id] = []
     return music_queues[guild_id]
+
+
+def log_command(guild_id: int, user_name: str, command_name: str, details: str = ""):
+    """Log a command to the guild's command history (max 50 entries)"""
+    if guild_id not in command_logs:
+        command_logs[guild_id] = []
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = {
+        "timestamp": timestamp,
+        "user": user_name,
+        "command": command_name,
+        "details": details
+    }
+
+    command_logs[guild_id].insert(0, log_entry)  # Add to front
+
+    # Keep only the last 50 entries
+    if len(command_logs[guild_id]) > 50:
+        command_logs[guild_id] = command_logs[guild_id][:50]
 
 
 async def play_next(guild, skip_previous_tracking=False):
@@ -279,6 +301,7 @@ async def check_empty_vc():
                     voice_client.pause()
                     logger.info(f"Paused playback in {guild.name} - VC is empty")
                     bot_status = "Paused (empty VC)"
+                    # Don't set manual_pause flag - this is auto-pause
 
                 if guild.id in last_activity:
                     time_diff = (current_time - last_activity[guild.id]).total_seconds()
@@ -296,11 +319,13 @@ async def check_empty_vc():
                 else:
                     last_activity[guild.id] = current_time
             else:
-                # Resume if paused when people rejoin
+                # Resume if paused when people rejoin (only if not manually paused)
                 if voice_client.is_paused():
-                    voice_client.resume()
-                    logger.info(f"Resumed playback in {guild.name} - users rejoined")
-                    bot_status = "Playing music"
+                    # Only auto-resume if user didn't manually pause
+                    if guild.id not in manual_pause or not manual_pause[guild.id]:
+                        voice_client.resume()
+                        logger.info(f"Resumed playback in {guild.name} - users rejoined")
+                        bot_status = "Playing music"
 
                 last_activity[guild.id] = current_time
 
@@ -457,10 +482,13 @@ async def play(interaction: discord.Interaction, url: str):
 
     if not guild.voice_client:
         logger.info(f"Connecting to voice channel: {voice_channel.name}")
-        await voice_channel.connect()
+        await voice_channel.connect(self_deaf=True)
     elif guild.voice_client.channel != voice_channel:
         logger.info(f"Moving to voice channel: {voice_channel.name}")
         await guild.voice_client.move_to(voice_channel)
+
+    # Ensure bot is deafened for privacy
+    await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
     try:
         logger.info(f"Attempting to load audio from: {url}")
@@ -598,9 +626,12 @@ async def nonstoppop(interaction: discord.Interaction, action: app_commands.Choi
 
     if action.value == "start":
         if not guild.voice_client:
-            await voice_channel.connect()
+            await voice_channel.connect(self_deaf=True)
         elif guild.voice_client.channel != voice_channel:
             await guild.voice_client.move_to(voice_channel)
+
+        # Ensure bot is deafened for privacy
+        await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
         if guild.voice_client.is_playing():
             guild.voice_client.stop()
@@ -689,11 +720,13 @@ async def pause(interaction: discord.Interaction):
 
     if guild.voice_client.is_playing():
         guild.voice_client.pause()
-        logger.info("Playback paused")
+        manual_pause[guild.id] = True  # Mark as manually paused
+        logger.info("Playback paused manually")
         await interaction.response.send_message('⏸️ Paused!', ephemeral=True)
     elif guild.voice_client.is_paused():
         guild.voice_client.resume()
-        logger.info("Playback resumed")
+        manual_pause[guild.id] = False  # Clear manual pause flag
+        logger.info("Playback resumed manually")
         await interaction.response.send_message('▶️ Resumed!', ephemeral=True)
     else:
         await interaction.response.send_message('❌ Nothing is playing right now!', ephemeral=True)
@@ -783,6 +816,119 @@ async def stop(interaction: discord.Interaction):
 
     logger.info("Bot stopped and disconnected from voice channel")
     await interaction.response.send_message('⏹️ **Stopped!** Left the voice channel.', ephemeral=True)
+
+
+@bot.tree.command(name="help", description="Show all available commands and features")
+async def help_command(interaction: discord.Interaction):
+    """Display help information about all bot commands"""
+    embed = discord.Embed(
+        title="🎵 Discord Music Bot - Help",
+        description="A feature-rich music bot with queue management and playlist support",
+        color=discord.Color.blue()
+    )
+
+    # Playback commands
+    embed.add_field(
+        name="🎮 Playback Commands",
+        value=(
+            "`/play [url]` - Play music from YouTube\n"
+            "`/pause` - Pause or resume playback\n"
+            "`/skip` - Skip the current song\n"
+            "`/previous` - Play the previous song\n"
+            "`/stop` - Stop playback and disconnect"
+        ),
+        inline=False
+    )
+
+    # Queue commands
+    embed.add_field(
+        name="📋 Queue Management",
+        value=(
+            "`/queue` - View current queue with pagination\n"
+            "`/queueclear` - Clear the entire queue"
+        ),
+        inline=False
+    )
+
+    # Playlist commands
+    embed.add_field(
+        name="🎶 Playlist Features",
+        value="`/nonstoppop [start/stop]` - Shuffle playlist mode",
+        inline=False
+    )
+
+    # Admin commands
+    embed.add_field(
+        name="🔧 Admin Commands",
+        value="`/regulate` - Toggle owner-only mode (server owner only)",
+        inline=False
+    )
+
+    # Smart features
+    embed.add_field(
+        name="✨ Smart Features",
+        value=(
+            "• Auto-pause when alone in voice channel\n"
+            "• Auto-disconnect after 5 minutes alone\n"
+            "• All responses are private (ephemeral)\n"
+            "• Tracks last 10 songs for /previous command"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text="All commands are slash commands - start typing / to see them!")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="logs", description="View recent command history for this server")
+@app_commands.describe(page="Page number (10 commands per page)")
+async def logs_command(interaction: discord.Interaction, page: int = 1):
+    """Display command log history with pagination"""
+    guild_id = interaction.guild.id
+
+    # Get logs for this guild
+    if guild_id not in command_logs or len(command_logs[guild_id]) == 0:
+        await interaction.response.send_message("📜 No command history found for this server yet.", ephemeral=True)
+        return
+
+    logs = command_logs[guild_id]
+    total_logs = len(logs)
+    logs_per_page = 10
+    total_pages = (total_logs + logs_per_page - 1) // logs_per_page  # Ceiling division
+
+    # Validate page number
+    if page < 1:
+        page = 1
+    elif page > total_pages:
+        page = total_pages
+
+    # Calculate slice indices
+    start_idx = (page - 1) * logs_per_page
+    end_idx = min(start_idx + logs_per_page, total_logs)
+    page_logs = logs[start_idx:end_idx]
+
+    # Build embed
+    embed = discord.Embed(
+        title=f"📜 Command History - Page {page}/{total_pages}",
+        description=f"Showing {len(page_logs)} of {total_logs} commands",
+        color=discord.Color.blue()
+    )
+
+    for log_entry in page_logs:
+        command_text = f"`/{log_entry['command']}`"
+        if log_entry['details']:
+            command_text += f" - {log_entry['details']}"
+
+        embed.add_field(
+            name=f"{log_entry['timestamp']} - {log_entry['user']}",
+            value=command_text,
+            inline=False
+        )
+
+    embed.set_footer(text=f"Use /logs [page] to view other pages • Max 50 commands saved")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def regulate_check(interaction: discord.Interaction) -> bool:

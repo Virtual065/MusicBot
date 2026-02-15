@@ -5,6 +5,7 @@ A feature-rich Discord music bot with queue management, playlist support, auto-p
 ## ✨ Features
 
 ### 🎮 Commands
+- **`/help`** - Get information on other commands
 - **`/play [url]`** - Play music from YouTube
 - **`/queue`** - View queue with pagination
 - **`/nonstoppop [start/stop]`** - Shuffle playlist mode

@@ -74,17 +74,7 @@ jobs:
             3. Edit `.env` with your Discord token
             4. Start the stack
 
-            ### All Features:
-            - `/help` - Show all available commands and features
-            - `/play [url]` - Play music from YouTube
-            - `/queue` - View current queue with pagination
-            - `/nonstoppop [start/stop]` - Shuffle playlist mode
-            - `/skip`, `/pause`, `/previous` - Playback controls
-            - `/queueclear` - Clear queue
-            - `/stop` - Stop and disconnect
-            - `/regulate` - Owner-only mode toggle
-            - Auto-pause when alone in VC
-            - Auto-disconnect after 5 minutes
-            - Live stats window
+            ### Features:
+            For a complete list of features and commands, see the [Features section](https://github.com/Virtual065/MusicBot?tab=readme-ov-file#-features) in the README.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

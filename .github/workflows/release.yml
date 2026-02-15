@@ -52,6 +52,10 @@ jobs:
           body: |
             ## Discord Music Bot Release
 
+            ### What's New:
+            <!-- Add new features and changes here -->
+            -
+
             ### Downloads:
             - **Windows .exe**: System tray version with GUI setup
             - **Dockge.zip**: Docker deployment package
@@ -70,7 +74,8 @@ jobs:
             3. Edit `.env` with your Discord token
             4. Start the stack
 
-            ### Features:
+            ### All Features:
+            - `/help` - Show all available commands and features
             - `/play [url]` - Play music from YouTube
             - `/queue` - View current queue with pagination
             - `/nonstoppop [start/stop]` - Shuffle playlist mode

@@ -52,10 +52,6 @@ jobs:
           body: |
             ## Discord Music Bot Release
 
-            ### What's New:
-            <!-- Add new features and changes here -->
-            -
-
             ### Downloads:
             - **Windows .exe**: System tray version with GUI setup
             - **Dockge.zip**: Docker deployment package
@@ -75,6 +71,15 @@ jobs:
             4. Start the stack
 
             ### Features:
-            For a complete list of features and commands, see the [Features section](https://github.com/Virtual065/MusicBot?tab=readme-ov-file#-features) in the README.
+            - `/play [url]` - Play music from YouTube
+            - `/queue` - View current queue with pagination
+            - `/nonstoppop [start/stop]` - Shuffle playlist mode
+            - `/skip`, `/pause`, `/previous` - Playback controls
+            - `/queueclear` - Clear queue
+            - `/stop` - Stop and disconnect
+            - `/regulate` - Owner-only mode toggle
+            - Auto-pause when alone in VC
+            - Auto-disconnect after 5 minutes
+            - Live stats window
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

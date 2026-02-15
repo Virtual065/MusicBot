@@ -785,69 +785,6 @@ async def stop(interaction: discord.Interaction):
     await interaction.response.send_message('⏹️ **Stopped!** Left the voice channel.', ephemeral=True)
 
 
-@bot.tree.command(name="help", description="Show all available commands and features")
-async def help_command(interaction: discord.Interaction):
-    """Display help information about all bot commands"""
-    embed = discord.Embed(
-        title="🎵 Discord Music Bot - Help",
-        description="A feature-rich music bot with queue management and playlist support",
-        color=discord.Color.blue()
-    )
-
-    # Playback commands
-    embed.add_field(
-        name="🎮 Playback Commands",
-        value=(
-            "`/play [url]` - Play music from YouTube\n"
-            "`/pause` - Pause or resume playback\n"
-            "`/skip` - Skip the current song\n"
-            "`/previous` - Play the previous song\n"
-            "`/stop` - Stop playback and disconnect"
-        ),
-        inline=False
-    )
-
-    # Queue commands
-    embed.add_field(
-        name="📋 Queue Management",
-        value=(
-            "`/queue` - View current queue with pagination\n"
-            "`/queueclear` - Clear the entire queue"
-        ),
-        inline=False
-    )
-
-    # Playlist commands
-    embed.add_field(
-        name="🎶 Playlist Features",
-        value="`/nonstoppop [start/stop]` - Shuffle playlist mode",
-        inline=False
-    )
-
-    # Admin commands
-    embed.add_field(
-        name="🔧 Admin Commands",
-        value="`/regulate` - Toggle owner-only mode (server owner only)",
-        inline=False
-    )
-
-    # Smart features
-    embed.add_field(
-        name="✨ Smart Features",
-        value=(
-            "• Auto-pause when alone in voice channel\n"
-            "• Auto-disconnect after 5 minutes alone\n"
-            "• All responses are private (ephemeral)\n"
-            "• Tracks last 10 songs for /previous command"
-        ),
-        inline=False
-    )
-
-    embed.set_footer(text="All commands are slash commands - start typing / to see them!")
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
 async def regulate_check(interaction: discord.Interaction) -> bool:
     """Check if user is the server owner"""
     return interaction.user.id == interaction.guild.owner_id

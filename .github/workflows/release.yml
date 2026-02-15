@@ -1,0 +1,83 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Windows EXE
+        run: |
+          python -m PyInstaller --clean build.spec
+
+      - name: Prepare Dockge.zip
+        run: |
+          Compress-Archive -Path Dockge\* -DestinationPath Dockge.zip
+
+      - name: Get version
+        id: get_version
+        run: |
+          $version = "v$(Get-Date -Format 'yyyy.MM.dd.HHmm')"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: true
+          files: |
+            dist/DiscordMusicBot.exe
+            Dockge.zip
+          body: |
+            ## Discord Music Bot Release
+
+            ### Downloads:
+            - **Windows .exe**: System tray version with GUI setup
+            - **Dockge.zip**: Docker deployment package
+
+            ### Installation:
+
+            #### Windows (.exe):
+            1. Download `DiscordMusicBot.exe`
+            2. Run it - it will run in your system tray (look for a red square 🟥)
+            3. On first run, you'll be prompted to enter your Discord bot token
+            4. Right-click the red square icon to access stats or quit
+
+            #### Dockge (Docker):
+            1. Download `Dockge.zip`
+            2. Extract and drag into Dockge
+            3. Edit `.env` with your Discord token
+            4. Start the stack
+
+            ### Features:
+            - `/play [url]` - Play music from YouTube
+            - `/queue` - View current queue with pagination
+            - `/nonstoppop [start/stop]` - Shuffle playlist mode
+            - `/skip`, `/pause`, `/previous` - Playback controls
+            - `/queueclear` - Clear queue
+            - `/stop` - Stop and disconnect
+            - `/regulate` - Owner-only mode toggle
+            - Auto-pause when alone in VC
+            - Auto-disconnect after 5 minutes
+            - Live stats window
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

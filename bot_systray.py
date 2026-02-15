@@ -732,6 +732,30 @@ async def pause(interaction: discord.Interaction):
         await interaction.response.send_message('❌ Nothing is playing right now!', ephemeral=True)
 
 
+@bot.tree.command(name="resume", description="Resume playback if paused")
+async def resume(interaction: discord.Interaction):
+    if interaction.guild.id in regulated_mode and regulated_mode[interaction.guild.id]:
+        if interaction.user.id != interaction.guild.owner_id:
+            await interaction.response.send_message('🔒 Bot is in regulated mode. Only the server owner can use commands.', ephemeral=True)
+            return
+
+    guild = interaction.guild
+
+    if not guild.voice_client:
+        await interaction.response.send_message('❌ Not connected to a voice channel!', ephemeral=True)
+        return
+
+    if guild.voice_client.is_paused():
+        guild.voice_client.resume()
+        manual_pause[guild.id] = False  # Clear manual pause flag
+        logger.info("Playback resumed manually")
+        await interaction.response.send_message('▶️ Resumed!', ephemeral=True)
+    elif guild.voice_client.is_playing():
+        await interaction.response.send_message('▶️ Already playing!', ephemeral=True)
+    else:
+        await interaction.response.send_message('❌ Nothing is paused right now!', ephemeral=True)
+
+
 @bot.tree.command(name="previous", description="Play the previous song")
 async def previous(interaction: discord.Interaction):
     if interaction.guild.id in regulated_mode and regulated_mode[interaction.guild.id]:

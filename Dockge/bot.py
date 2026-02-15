@@ -227,9 +227,12 @@ async def play(interaction: discord.Interaction, url: str):
 
     # Connect to voice channel if not already connected
     if not guild.voice_client:
-        await voice_channel.connect()
+        await voice_channel.connect(self_deaf=True)
     elif guild.voice_client.channel != voice_channel:
         await guild.voice_client.move_to(voice_channel)
+
+    # Ensure bot is deafened for privacy
+    await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
     try:
         # Get song info
@@ -372,9 +375,12 @@ async def nonstoppop(interaction: discord.Interaction, action: app_commands.Choi
     if action.value == "start":
         # Connect to voice channel
         if not guild.voice_client:
-            await voice_channel.connect()
+            await voice_channel.connect(self_deaf=True)
         elif guild.voice_client.channel != voice_channel:
             await guild.voice_client.move_to(voice_channel)
+
+        # Ensure bot is deafened for privacy
+        await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
         # Stop current playback
         if guild.voice_client.is_playing():

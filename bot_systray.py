@@ -457,10 +457,13 @@ async def play(interaction: discord.Interaction, url: str):
 
     if not guild.voice_client:
         logger.info(f"Connecting to voice channel: {voice_channel.name}")
-        await voice_channel.connect()
+        await voice_channel.connect(self_deaf=True)
     elif guild.voice_client.channel != voice_channel:
         logger.info(f"Moving to voice channel: {voice_channel.name}")
         await guild.voice_client.move_to(voice_channel)
+
+    # Ensure bot is deafened for privacy
+    await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
     try:
         logger.info(f"Attempting to load audio from: {url}")
@@ -598,9 +601,12 @@ async def nonstoppop(interaction: discord.Interaction, action: app_commands.Choi
 
     if action.value == "start":
         if not guild.voice_client:
-            await voice_channel.connect()
+            await voice_channel.connect(self_deaf=True)
         elif guild.voice_client.channel != voice_channel:
             await guild.voice_client.move_to(voice_channel)
+
+        # Ensure bot is deafened for privacy
+        await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
 
         if guild.voice_client.is_playing():
             guild.voice_client.stop()

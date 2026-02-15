@@ -1,6 +1,3 @@
-# Claude AI files
-.claude/
-
 # Environment variables
 .env
 Info.txt
